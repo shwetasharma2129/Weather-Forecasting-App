@@ -1,0 +1,83 @@
+import requests
+import tkinter as tk
+from tkinter import messagebox, ttk
+
+# Replace 'your_api_key_here' with your OpenWeatherMap API key
+API_KEY = "fa942440840a92b07cdc65341fc088c4"
+BASE_URL = "http://api.openweathermap.org/data/2.5/forecast"
+
+def get_weather_forecast(city):
+    """Fetch weather forecast for the given city."""
+    url = f"{BASE_URL}?q={city}&appid={API_KEY}&units=metric"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        forecast_data = parse_forecast(data)
+        display_forecast(forecast_data)
+    else:
+        messagebox.showerror("Error", f"City '{city}' not found. Please try again.")
+
+def parse_forecast(data):
+    """Extract and format forecast information."""
+    forecasts = []
+    for item in data['list']:
+        forecast = {
+            "date_time": item["dt_txt"],
+            "temp": item["main"]["temp"],
+            "description": item["weather"][0]["description"],
+            "humidity": item["main"]["humidity"],
+            "wind_speed": item["wind"]["speed"]
+        }
+        forecasts.append(forecast)
+    return forecasts
+
+def display_forecast(forecasts):
+    """Display the forecast data in the GUI."""
+    forecast_list.delete(*forecast_list.get_children())  # Clear previous data
+
+    for forecast in forecasts:
+        forecast_list.insert(
+            "",
+            tk.END,
+            values=(
+                forecast["date_time"],
+                f"{forecast['temp']} °C",
+                forecast["description"].capitalize(),
+                f"{forecast['humidity']}%",
+                f"{forecast['wind_speed']} m/s"
+            ),
+        )
+
+def on_search():
+    """Handle the search button click."""
+    city = city_entry.get()
+    if city:
+        get_weather_forecast(city)
+    else:
+        messagebox.showwarning("Input Error", "Please enter a city name.")
+
+# Set up the main Tkinter window
+root = tk.Tk()
+root.title("Advanced Weather Forecast App")
+root.geometry("700x400")
+
+# Input field and search button
+tk.Label(root, text="Enter City Name:", font=("Arial", 14)).grid(row=0, column=0, padx=10, pady=10)
+city_entry = tk.Entry(root, font=("Arial", 14), width=20)
+city_entry.grid(row=0, column=1, padx=10, pady=10)
+search_button = tk.Button(root, text="Search", font=("Arial", 14), command=on_search)
+search_button.grid(row=0, column=2, padx=10, pady=10)
+
+# Forecast display area (Treeview)
+columns = ("Date/Time", "Temperature", "Description", "Humidity", "Wind Speed")
+forecast_list = ttk.Treeview(root, columns=columns, show="headings", height=15)
+
+for col in columns:
+    forecast_list.heading(col, text=col)
+    forecast_list.column(col, minwidth=0, width=120, stretch=tk.NO)
+
+forecast_list.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
+
+# Start the Tkinter event loop
+root.mainloop()
